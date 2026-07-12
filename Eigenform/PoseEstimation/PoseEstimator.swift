@@ -10,8 +10,10 @@ final class PoseEstimator: @unchecked Sendable {
     private let request = VNDetectHumanBodyPoseRequest()
 
     /// Runs pose detection on one frame. Returns nil when no body is found or the
-    /// buffer is unreadable. Buffers arrive pre-rotated to upright portrait (see
-    /// `CameraManager`), so orientation is always `.up`.
+    /// buffer is unreadable. Buffers arrive gravity-upright — the capture connection's
+    /// rotation is device-tracked (see `CameraManager`), so a person the right way up
+    /// in the world is the right way up in the buffer regardless of how the phone is
+    /// held; orientation is therefore always `.up`.
     func estimatePose(in sampleBuffer: CMSampleBuffer) -> BodyPose? {
         guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return nil }
         let imageSize = CGSize(width: CVPixelBufferGetWidth(pixelBuffer),

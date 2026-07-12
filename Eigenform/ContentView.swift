@@ -2,6 +2,11 @@ import SwiftUI
 
 struct ContentView: View {
     @StateObject private var viewModel = WorkoutSessionViewModel()
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
+
+    /// Landscape on iPhone reports compact height: the top/bottom chrome has to share
+    /// a much shorter screen, so the transcript panel shrinks and padding tightens.
+    private var isCompactHeight: Bool { verticalSizeClass == .compact }
 
     var body: some View {
         ZStack {
@@ -10,7 +15,7 @@ struct ContentView: View {
             if viewModel.camera.permissionDenied {
                 permissionDeniedView
             } else {
-                CameraPreviewView(session: viewModel.camera.session)
+                CameraPreviewView(camera: viewModel.camera)
                     .ignoresSafeArea()
                 SkeletonOverlayView(frame: viewModel.skeleton)
                     .ignoresSafeArea()
@@ -18,10 +23,11 @@ struct ContentView: View {
                 VStack {
                     HUDView(viewModel: viewModel)
                     Spacer()
-                    TranscriptView(entries: viewModel.feedback.transcript)
+                    TranscriptView(entries: viewModel.feedback.transcript,
+                                   height: isCompactHeight ? 90 : 140)
                 }
                 .padding(.horizontal, 12)
-                .padding(.vertical, 8)
+                .padding(.vertical, isCompactHeight ? 4 : 8)
             }
         }
         .onAppear { viewModel.start() }

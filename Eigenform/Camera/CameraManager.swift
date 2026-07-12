@@ -18,6 +18,17 @@ final class CameraManager: NSObject, ObservableObject {
     private let videoOutput = AVCaptureVideoDataOutput()
     private var configured = false
 
+    // Rotation tracking. `RotationCoordinator` (iOS 17+) watches the physical device
+    // orientation and publishes the angles that keep both the Vision buffers and the
+    // on-screen preview gravity-upright — so the pipeline behaves identically in
+    // portrait and landscape, and buffers arrive wide when the phone is held sideways.
+    // These properties are only touched on the main queue.
+    private weak var previewLayer: AVCaptureVideoPreviewLayer?
+    private var videoDevice: AVCaptureDevice?
+    private var rotationCoordinator: AVCaptureDevice.RotationCoordinator?
+    private var captureAngleObservation: NSKeyValueObservation?
+    private var previewAngleObservation: NSKeyValueObservation?
+
     func start() {
         switch AVCaptureDevice.authorizationStatus(for: .video) {
         case .authorized:
@@ -48,6 +59,13 @@ final class CameraManager: NSObject, ObservableObject {
             configure(position: newPosition)
         }
         position = newPosition
+    }
+
+    /// Called from the SwiftUI preview view (main queue) once its backing layer exists,
+    /// so the rotation coordinator can compute the preview angle against it.
+    func attach(previewLayer: AVCaptureVideoPreviewLayer) {
+        self.previewLayer = previewLayer
+        rebuildRotationCoordinator()
     }
 
     private func startConfigured() {
@@ -87,12 +105,47 @@ final class CameraManager: NSObject, ObservableObject {
             session.addOutput(videoOutput)
         }
 
-        // Rotate buffers to upright portrait so Vision can be handed .up frames and
-        // every downstream coordinate assumption holds regardless of sensor mounting.
-        if let connection = videoOutput.connection(with: .video),
-           connection.isVideoRotationAngleSupported(90) {
-            connection.videoRotationAngle = 90
+        // Hand the new device to the main queue so the rotation coordinator can track
+        // it. The coordinator (not a fixed angle) now drives buffer/preview rotation.
+        DispatchQueue.main.async { [self] in
+            videoDevice = device
+            rebuildRotationCoordinator()
         }
+    }
+
+    /// Main queue only. Rebuilds the coordinator whenever the device or preview layer
+    /// changes; reassigning the observations invalidates the previous ones.
+    private func rebuildRotationCoordinator() {
+        dispatchPrecondition(condition: .onQueue(.main))
+        guard let device = videoDevice, let previewLayer else { return }
+
+        let coordinator = AVCaptureDevice.RotationCoordinator(device: device, previewLayer: previewLayer)
+        rotationCoordinator = coordinator
+
+        captureAngleObservation = coordinator.observe(
+            \.videoRotationAngleForHorizonLevelCapture, options: [.initial, .new]
+        ) { [weak self] coordinator, _ in
+            self?.applyCaptureRotation(coordinator.videoRotationAngleForHorizonLevelCapture)
+        }
+        previewAngleObservation = coordinator.observe(
+            \.videoRotationAngleForHorizonLevelPreview, options: [.initial, .new]
+        ) { [weak self] coordinator, _ in
+            self?.applyPreviewRotation(coordinator.videoRotationAngleForHorizonLevelPreview)
+        }
+    }
+
+    private func applyCaptureRotation(_ angle: CGFloat) {
+        sessionQueue.async { [self] in
+            guard let connection = videoOutput.connection(with: .video),
+                  connection.isVideoRotationAngleSupported(angle) else { return }
+            connection.videoRotationAngle = angle
+        }
+    }
+
+    private func applyPreviewRotation(_ angle: CGFloat) {
+        guard let connection = previewLayer?.connection,
+              connection.isVideoRotationAngleSupported(angle) else { return }
+        connection.videoRotationAngle = angle
     }
 }
 

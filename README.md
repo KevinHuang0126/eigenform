@@ -1,4 +1,8 @@
-# Eigenform
+<p align="center">
+  <img src="docs/icon.png" width="128" alt="Eigenform icon" />
+</p>
+
+<h1 align="center">Eigenform</h1>
 
 Real-time, on-device gym form tracking for iOS. Native stack only — SwiftUI,
 AVFoundation, Vision (`VNDetectHumanBodyPoseRequest`), `AVSpeechSynthesizer` — with

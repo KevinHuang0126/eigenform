@@ -4,6 +4,9 @@ import SwiftUI
 /// at the bottom; auto-scrolls as entries arrive.
 struct TranscriptView: View {
     let entries: [TranscriptEntry]
+    /// Panel height. Shrinks in landscape (compact height) so the transcript doesn't
+    /// swallow the shorter screen; see `ContentView`.
+    var height: CGFloat = 140
 
     private static let timeFormatter: DateFormatter = {
         let formatter = DateFormatter()
@@ -39,7 +42,7 @@ struct TranscriptView: View {
                 }
             }
         }
-        .frame(height: 140)
+        .frame(height: height)
         .background(.black.opacity(0.45), in: RoundedRectangle(cornerRadius: 12))
     }
 
