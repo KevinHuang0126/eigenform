@@ -83,13 +83,6 @@ Key files:
 | `Eigenform/Feedback/FeedbackEngine.swift` | Speech, throttling, transcript |
 | `Eigenform/Session/WorkoutSessionViewModel.swift` | Pipeline glue + threading model |
 
-## Design decisions
-
-The handoff spec (`Project_IronSight_Handoff.md`) was amended in four places during
-implementation — most notably, Vision has **no heel/toe landmarks**, so squat
-heel-lift detection uses an ankle-height baseline instead. All amendments and the
-reasoning live in [`docs/ADR-002-Handoff-Amendments.md`](docs/ADR-002-Handoff-Amendments.md).
-
 ## Known limitations (MVP)
 
 - 2D pose only: angle accuracy degrades when the movement plane isn't perpendicular
