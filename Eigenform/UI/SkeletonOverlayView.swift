@@ -1,10 +1,16 @@
 import SwiftUI
 
-/// Stick-figure debug overlay. Converts Vision normalized points (bottom-left
-/// origin) into view coordinates, replicating the preview layer's
-/// `.resizeAspectFill` mapping so the skeleton stays glued to the on-screen body.
+/// The live skeleton, drawn in the app icon's visual language: round-capped
+/// bones with a soft glow and solid white circular joints — the on-screen body
+/// becomes the lambda from the logo. `tint` is mint normally and flashes coral
+/// on a form fault (driven by `SessionView`).
+///
+/// Converts Vision normalized points (bottom-left origin) into view coordinates,
+/// replicating the preview layer's `.resizeAspectFill` mapping so the skeleton
+/// stays glued to the on-screen body.
 struct SkeletonOverlayView: View {
     let frame: SkeletonFrame?
+    var tint: Color = EF.mint
 
     var body: some View {
         Canvas { context, size in
@@ -32,11 +38,16 @@ struct SkeletonOverlayView: View {
                 bonePath.move(to: convert(pa))
                 bonePath.addLine(to: convert(pb))
             }
-            context.stroke(bonePath, with: .color(.green.opacity(0.8)), lineWidth: 3)
+
+            var glow = context
+            glow.addFilter(.shadow(color: tint.opacity(0.85), radius: 7))
+            glow.stroke(bonePath,
+                        with: .color(tint.opacity(0.9)),
+                        style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round))
 
             for point in frame.joints.values {
                 let p = convert(point)
-                let dot = CGRect(x: p.x - 5, y: p.y - 5, width: 10, height: 10)
+                let dot = CGRect(x: p.x - 4.5, y: p.y - 4.5, width: 9, height: 9)
                 context.fill(Path(ellipseIn: dot), with: .color(.white))
             }
         }

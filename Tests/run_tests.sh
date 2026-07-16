@@ -20,6 +20,7 @@ swiftc -o "$BUILD_DIR/logic-tests" \
     Eigenform/Exercises/SquatAnalyzer.swift \
     Eigenform/Exercises/PushupAnalyzer.swift \
     Eigenform/Exercises/PullupAnalyzer.swift \
+    Eigenform/History/WorkoutRecord.swift \
     Tests/LogicTests/main.swift
 
 "$BUILD_DIR/logic-tests"

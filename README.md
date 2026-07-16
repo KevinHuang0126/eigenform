@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="docs/icon.png" width="128" alt="Eigenform icon" />
+  <img src="docs/icon.png" width="128" alt="EigenForm icon" />
 </p>
 
-<h1 align="center">Eigenform</h1>
+<h1 align="center">EigenForm</h1>
 
 Real-time, on-device gym form tracking for iOS. Native stack only — SwiftUI,
 AVFoundation, Vision (`VNDetectHumanBodyPoseRequest`), `AVSpeechSynthesizer` — with
@@ -50,7 +50,8 @@ Tests/run_tests.sh
 
 Drives each analyzer with synthetic pose sequences: rep counting, hysteresis,
 double-count prevention, debounce of jitter blips, depth/heel/sag/pike fault cues,
-confidence filtering, and reset behavior. 43 assertions.
+confidence filtering, and reset behavior — plus the workout-history record model
+(day grouping and wire format). 89 assertions.
 
 ## Architecture
 

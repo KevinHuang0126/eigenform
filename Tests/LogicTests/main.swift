@@ -1,4 +1,4 @@
-// Eigenform logic test harness.
+// EigenForm logic test harness.
 //
 // Runs on macOS (no simulator needed): the biomechanics layer and the exercise
 // state machines are pure Swift + CoreGraphics + Vision types, so they compile
@@ -533,6 +533,55 @@ curl.reset()
 expectEqual(curl.repCount, 0, "reset clears the rep count")
 let postResetEvents = feed(curl, curlExtended, frames: 4) + feed(curl, curlFlexed, frames: 4)
 expectEqual(reps(in: postResetEvents), 1, "analyzer works normally after reset")
+
+// MARK: - Workout history model
+
+suite("WorkoutRecord day sections")
+
+func makeRecord(daysAgo: Int, hour: Int, reps: Int = 10) -> WorkoutRecord {
+    let day = Calendar.current.date(byAdding: .day, value: -daysAgo, to: Date())!
+    let at = Calendar.current.date(bySettingHour: hour, minute: 0, second: 0, of: day)!
+    return WorkoutRecord(id: UUID(), exercise: "squat", reps: reps,
+                         durationSeconds: 60, faults: [], performedAt: at)
+}
+
+let sections = WorkoutRecord.daySections([
+    makeRecord(daysAgo: 0, hour: 18, reps: 12),
+    makeRecord(daysAgo: 0, hour: 9, reps: 8),
+    makeRecord(daysAgo: 2, hour: 10, reps: 5),
+])
+expectEqual(sections.count, 2, "records group into one section per day")
+expectEqual(sections[0].records.count, 2, "newest day lists both of its sets")
+expectEqual(sections[0].records[0].reps, 12, "in-day order is preserved")
+expect(sections[0].day > sections[1].day, "sections are sorted newest day first")
+expect(WorkoutRecord.daySections([]).isEmpty, "no records, no sections")
+
+suite("WorkoutRecord wire format")
+
+let record = WorkoutRecord(
+    id: UUID(), exercise: "pushup", reps: 15, durationSeconds: 92.5,
+    faults: [WorkoutRecord.FaultNote(text: "Lift your hips", count: 2)],
+    // Whole seconds: ISO 8601 drops fractional seconds, and the round-trip
+    // assertion below compares dates exactly.
+    performedAt: Date(timeIntervalSince1970: 1_752_300_000))
+
+let recordEncoder = JSONEncoder()
+recordEncoder.dateEncodingStrategy = .iso8601
+let recordDecoder = JSONDecoder()
+recordDecoder.dateDecodingStrategy = .iso8601
+
+do {
+    let data = try recordEncoder.encode(record)
+    let json = String(data: data, encoding: .utf8)!
+    expect(json.contains("\"duration_seconds\""), "duration encodes as snake_case column name")
+    expect(json.contains("\"performed_at\""), "timestamp encodes as snake_case column name")
+
+    let decoded = try recordDecoder.decode(WorkoutRecord.self, from: data)
+    expectEqual(decoded, record, "record round-trips through its wire format")
+    expectEqual(decoded.faults.first?.count, 2, "fault notes survive the round trip")
+} catch {
+    expect(false, "record codec should not throw (got \(error))")
+}
 
 // MARK: - Summary
 

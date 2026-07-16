@@ -18,6 +18,10 @@ final class WorkoutSessionViewModel: ObservableObject {
     @Published private(set) var repCount = 0
     @Published private(set) var phaseLabel = ""
     @Published private(set) var skeleton: SkeletonFrame?
+    /// Monotonic counter bumped once per fault event; views key haptics and the
+    /// skeleton's coral flash off it (the fault text itself lives in the transcript).
+    @Published private(set) var faultPulse = 0
+    private(set) var sessionStart = Date()
 
     let camera = CameraManager()
     let feedback = FeedbackEngine()
@@ -30,8 +34,11 @@ final class WorkoutSessionViewModel: ObservableObject {
     }
 
     func start() {
+        sessionStart = Date()
+        // Keep the screen awake while the camera is watching a set; re-enabled in stop().
+        UIApplication.shared.isIdleTimerDisabled = true
         feedback.configureAudioSession()
-        feedback.logPhase("Eigenform ready — \(selectedExercise.displayName)")
+        feedback.logPhase("EigenForm ready — \(selectedExercise.displayName)")
         camera.sampleHandler = { [weak self] sampleBuffer in
             self?.processFrame(sampleBuffer)
         }
@@ -40,6 +47,7 @@ final class WorkoutSessionViewModel: ObservableObject {
 
     func stop() {
         camera.stop()
+        UIApplication.shared.isIdleTimerDisabled = false
     }
 
     func resetSession() {
@@ -47,8 +55,26 @@ final class WorkoutSessionViewModel: ObservableObject {
         current.reset()
         repCount = 0
         phaseLabel = current.phaseLabel
+        sessionStart = Date()
         feedback.clear()
         feedback.logPhase("Session reset")
+    }
+
+    /// Snapshot of the set that just ended, for the summary screen. Fault lines
+    /// are re-grouped from the transcript because coalescing only merges
+    /// consecutive repeats of the same cue.
+    func makeSummary() -> SessionSummary {
+        var faultCounts: [String: Int] = [:]
+        var order: [String] = []
+        for entry in feedback.transcript where entry.kind == .fault {
+            if faultCounts[entry.text] == nil { order.append(entry.text) }
+            faultCounts[entry.text, default: 0] += entry.count
+        }
+        return SessionSummary(
+            exercise: selectedExercise,
+            reps: repCount,
+            duration: Date().timeIntervalSince(sessionStart),
+            faults: order.map { (text: $0, count: faultCounts[$0] ?? 0) })
     }
 
     private func switchExercise(to exercise: Exercise) {
@@ -73,7 +99,18 @@ final class WorkoutSessionViewModel: ObservableObject {
             self.skeleton = frame
             self.repCount = self.analyzer.repCount
             self.phaseLabel = self.analyzer.phaseLabel
+            if events.contains(where: { if case .fault = $0 { return true } else { return false } }) {
+                self.faultPulse += 1
+            }
             self.feedback.handle(events)
         }
     }
+}
+
+/// What a finished set looked like; consumed by `SummaryView`.
+struct SessionSummary {
+    let exercise: Exercise
+    let reps: Int
+    let duration: TimeInterval
+    let faults: [(text: String, count: Int)]
 }
