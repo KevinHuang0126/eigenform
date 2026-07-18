@@ -51,8 +51,7 @@ struct SessionView: View {
 
             Spacer()
 
-            Label(viewModel.selectedExercise.displayName,
-                  systemImage: viewModel.selectedExercise.symbolName)
+            Text(viewModel.selectedExercise.displayName)
                 .font(EF.label)
                 .foregroundStyle(EF.ink)
                 .padding(.horizontal, 14)

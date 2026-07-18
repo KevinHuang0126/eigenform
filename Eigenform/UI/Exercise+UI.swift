@@ -3,16 +3,6 @@ import SwiftUI
 /// UI-side metadata for each exercise. Lives apart from `Exercise.swift` so the
 /// logic layer stays Foundation-only and keeps compiling in `Tests/run_tests.sh`.
 extension Exercise {
-    /// SF Symbol shown on the home card and session chrome.
-    var symbolName: String {
-        switch self {
-        case .bicepCurl: return "dumbbell.fill"
-        case .squat: return "figure.strengthtraining.functional"
-        case .pushup: return "figure.core.training"
-        case .pullup: return "figure.climbing"
-        }
-    }
-
     /// One-line camera setup hint, mirrored from the analyzers' guidance cues.
     var setupHint: String {
         switch self {

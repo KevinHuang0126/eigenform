@@ -1,0 +1,8 @@
+# Xcode per-user state (window layout, breakpoints, etc.)
+xcuserdata/
+
+# Local setup notes, not part of the app
+Eigenform/docs/
+
+# macOS
+.DS_Store

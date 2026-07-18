@@ -14,7 +14,7 @@ struct SummaryView: View {
         VStack(spacing: 0) {
             Spacer()
 
-            Label(summary.exercise.displayName, systemImage: summary.exercise.symbolName)
+            Text(summary.exercise.displayName)
                 .font(EF.label)
                 .foregroundStyle(EF.dim)
                 .padding(.horizontal, 14)

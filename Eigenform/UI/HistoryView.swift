@@ -81,9 +81,7 @@ struct HistoryView: View {
 
     private var emptyState: some View {
         VStack(spacing: 12) {
-            Text("λ")
-                .font(EF.display(44))
-                .foregroundStyle(EF.bandGradient)
+            EFLogoMark(size: 44)
             Text("No sets yet")
                 .font(EF.title)
                 .foregroundStyle(EF.ink)

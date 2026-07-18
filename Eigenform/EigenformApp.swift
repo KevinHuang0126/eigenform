@@ -28,9 +28,7 @@ private struct RootView: View {
 
             switch auth.phase {
             case .loading:
-                Text("λ")
-                    .font(EF.display(56))
-                    .foregroundStyle(EF.bandGradient)
+                EFLogoMark(size: 56)
                     .transition(.opacity)
 
             case .signedOut:
