@@ -104,9 +104,12 @@ struct EFLogoMark: View {
     }
 }
 
-/// Circular glassy icon button used in the session chrome.
+/// Circular glassy icon button used in the session chrome. `isActive` marks a
+/// latched toggle (angle mode) by filling the circle mint, the same treatment as
+/// the primary action capsules.
 struct EFCircleButton: View {
     let systemName: String
+    var isActive: Bool = false
     var action: () -> Void
 
     var body: some View {
@@ -115,7 +118,13 @@ struct EFCircleButton: View {
                 .font(.system(size: 17, weight: .semibold))
                 .foregroundStyle(EF.ink)
                 .frame(width: 42, height: 42)
-                .background(.ultraThinMaterial, in: Circle())
+                .background {
+                    if isActive {
+                        Circle().fill(EF.mint)
+                    } else {
+                        Circle().fill(.ultraThinMaterial)
+                    }
+                }
                 .overlay(Circle().strokeBorder(EF.hairline))
         }
         .buttonStyle(EFPressStyle())

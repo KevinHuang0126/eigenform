@@ -190,6 +190,141 @@ for _ in 0..<20 {
 }
 expectEqual(latchFires, 0, "sub-threshold jitter never fires")
 
+// MARK: - AngleVisibilityModel
+
+suite("AngleVisibilityModel")
+
+/// Feeds the same pose for `frames` and returns the last visible-vertex set.
+func feedVisibility(_ model: AngleVisibilityModel, _ pose: BodyPose,
+                    frames: Int) -> Set<BodyPose.Joint> {
+    var result: Set<BodyPose.Joint> = []
+    for _ in 0..<frames {
+        result = model.visibleVertices(for: pose)
+    }
+    return result
+}
+
+/// Wide shoulders/hips relative to torso → frontal. Arms and legs fully extended
+/// in the image plane so foreshortening doesn't hide anything.
+func frontalPose() -> BodyPose {
+    makePose([
+        .neck: CGPoint(x: 0.28, y: 0.78),
+        .root: CGPoint(x: 0.28, y: 0.48),
+        .leftShoulder: CGPoint(x: 0.10, y: 0.75),
+        .rightShoulder: CGPoint(x: 0.46, y: 0.75),
+        .leftHip: CGPoint(x: 0.16, y: 0.48),
+        .rightHip: CGPoint(x: 0.40, y: 0.48),
+        .leftElbow: CGPoint(x: 0.08, y: 0.60),
+        .leftWrist: CGPoint(x: 0.08, y: 0.45),
+        .rightElbow: CGPoint(x: 0.48, y: 0.60),
+        .rightWrist: CGPoint(x: 0.48, y: 0.45),
+        .leftKnee: CGPoint(x: 0.16, y: 0.28),
+        .leftAnkle: CGPoint(x: 0.16, y: 0.10),
+        .rightKnee: CGPoint(x: 0.40, y: 0.28),
+        .rightAnkle: CGPoint(x: 0.40, y: 0.10),
+    ])
+}
+
+/// Near-stacked shoulders/hips → sagittal. Left side confidence-boosted so the
+/// near-side picker commits left.
+func sagittalPose(wrist: CGPoint = CGPoint(x: 0.28, y: 0.45)) -> BodyPose {
+    makePose([
+        .neck: CGPoint(x: 0.28, y: 0.78),
+        .root: CGPoint(x: 0.28, y: 0.48),
+        .leftShoulder: CGPoint(x: 0.28, y: 0.75),
+        .rightShoulder: CGPoint(x: 0.30, y: 0.74),
+        .leftHip: CGPoint(x: 0.28, y: 0.48),
+        .rightHip: CGPoint(x: 0.30, y: 0.47),
+        .leftElbow: CGPoint(x: 0.28, y: 0.60),
+        .leftWrist: wrist,
+        .rightElbow: CGPoint(x: 0.31, y: 0.60),
+        .rightWrist: CGPoint(x: 0.31, y: 0.45),
+        .leftKnee: CGPoint(x: 0.28, y: 0.28),
+        .leftAnkle: CGPoint(x: 0.28, y: 0.10),
+        .rightKnee: CGPoint(x: 0.30, y: 0.28),
+        .rightAnkle: CGPoint(x: 0.30, y: 0.10),
+    ], confidenceOverrides: [
+        .leftShoulder: 0.95, .leftElbow: 0.95, .leftWrist: 0.95,
+        .leftHip: 0.95, .leftKnee: 0.95, .leftAnkle: 0.95,
+        .rightShoulder: 0.5, .rightElbow: 0.5, .rightWrist: 0.5,
+        .rightHip: 0.5, .rightKnee: 0.5, .rightAnkle: 0.5,
+    ])
+}
+
+/// Oblique lateral span — between leaveFrontal and enterSagittal after EMA.
+func obliquePose() -> BodyPose {
+    // torso = 0.30; mean gap ≈ 0.075 → ratio ≈ 0.25
+    makePose([
+        .neck: CGPoint(x: 0.28, y: 0.78),
+        .root: CGPoint(x: 0.28, y: 0.48),
+        .leftShoulder: CGPoint(x: 0.24, y: 0.75),
+        .rightShoulder: CGPoint(x: 0.32, y: 0.75),
+        .leftHip: CGPoint(x: 0.245, y: 0.48),
+        .rightHip: CGPoint(x: 0.315, y: 0.48),
+        .leftElbow: CGPoint(x: 0.22, y: 0.60),
+        .leftWrist: CGPoint(x: 0.20, y: 0.45),
+        .rightElbow: CGPoint(x: 0.34, y: 0.60),
+        .rightWrist: CGPoint(x: 0.36, y: 0.45),
+        .leftKnee: CGPoint(x: 0.24, y: 0.28),
+        .leftAnkle: CGPoint(x: 0.24, y: 0.10),
+        .rightKnee: CGPoint(x: 0.32, y: 0.28),
+        .rightAnkle: CGPoint(x: 0.32, y: 0.10),
+    ])
+}
+
+let angleModel = AngleVisibilityModel()
+let debounce = AngleVisibilityModel.debounceFrames
+
+var frontalVisible = feedVisibility(angleModel, frontalPose(), frames: debounce + 2)
+expect(frontalVisible.contains(.leftShoulder) && frontalVisible.contains(.rightShoulder),
+       "frontal view shows shoulders")
+expect(frontalVisible.contains(.leftHip) && frontalVisible.contains(.rightHip),
+       "frontal view shows hips")
+expect(!frontalVisible.contains(.leftElbow) && !frontalVisible.contains(.rightElbow),
+       "frontal view hides elbows (flexion plane points at camera)")
+expect(!frontalVisible.contains(.leftKnee) && !frontalVisible.contains(.rightKnee),
+       "frontal view hides knees")
+
+angleModel.reset()
+var sagittalVisible = feedVisibility(angleModel, sagittalPose(), frames: debounce + 2)
+expect(sagittalVisible.contains(.leftShoulder) && sagittalVisible.contains(.leftElbow),
+       "sagittal view shows near-side shoulder and elbow")
+expect(sagittalVisible.contains(.leftHip) && sagittalVisible.contains(.leftKnee),
+       "sagittal view shows near-side hip and knee")
+expect(!sagittalVisible.contains(.rightElbow) && !sagittalVisible.contains(.rightKnee),
+       "sagittal view hides far-side hinge joints")
+expect(!sagittalVisible.contains(.rightShoulder) && !sagittalVisible.contains(.rightHip),
+       "sagittal view hides far-side shoulder and hip")
+
+// Foreshortening backstop: establish segment refs on a full arm, then collapse
+// the forearm so the elbow angle is meaningless even side-on.
+angleModel.reset()
+_ = feedVisibility(angleModel, sagittalPose(), frames: 40)
+let foreshortened = sagittalPose(wrist: CGPoint(x: 0.28, y: 0.59)) // ~0.01 from elbow
+var afterShort = feedVisibility(angleModel, foreshortened, frames: debounce + 2)
+expect(!afterShort.contains(.leftElbow),
+       "foreshortened forearm hides the elbow even in a sagittal view")
+expect(afterShort.contains(.leftShoulder) || afterShort.contains(.leftKnee),
+       "other near-side joints survive when only the forearm collapsed")
+
+// Hysteresis: once frontal, an oblique ratio drops to ambiguous (still no elbows)
+// and stays there — it must not flap into sagittal without crossing enterSagittal.
+angleModel.reset()
+_ = feedVisibility(angleModel, frontalPose(), frames: debounce + 5)
+var obliqueVisible = feedVisibility(angleModel, obliquePose(), frames: 20)
+expect(!obliqueVisible.contains(.leftElbow) && !obliqueVisible.contains(.rightElbow),
+       "oblique/ambiguous view keeps elbows hidden")
+expect(obliqueVisible.contains(.leftShoulder) || obliqueVisible.contains(.rightShoulder),
+       "oblique/ambiguous view still allows shoulders")
+// Nudge slightly within the band — still no elbows.
+obliqueVisible = feedVisibility(angleModel, obliquePose(), frames: 10)
+expect(!obliqueVisible.contains(.leftElbow),
+       "classification does not flap into sagittal across the hysteresis band")
+
+angleModel.reset()
+expect(feedVisibility(angleModel, frontalPose(), frames: 1).isEmpty,
+       "debounce withholds vertices on the first frame")
+
 // MARK: - CueArbiter
 
 suite("CueArbiter")

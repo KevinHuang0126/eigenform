@@ -4,12 +4,16 @@
 
 <h1 align="center">EigenForm</h1>
 
-Real-time, on-device gym form tracking for iOS. Native stack only — SwiftUI,
-AVFoundation, Vision (`VNDetectHumanBodyPoseRequest`), `AVSpeechSynthesizer` — with
-zero third-party dependencies and no video ever leaving the device.
+Real-time, on-device gym form tracking for iOS. The coaching pipeline is native
+stack only — SwiftUI, AVFoundation, Vision (`VNDetectHumanBodyPoseRequest`),
+`AVSpeechSynthesizer` — and no video ever leaves the device. The one third-party
+dependency is [supabase-swift](https://github.com/supabase/supabase-swift), used
+for accounts and workout-history sync (only finished-set summaries are uploaded,
+never video or pose data).
 
-Watches you through the camera, draws a live skeleton overlay, counts reps, and
-coaches your form with spoken cues plus a scrolling on-screen transcript.
+Watches you through the camera, draws a live skeleton overlay (with an optional
+joint-angle readout), counts reps, and coaches your form with spoken cues plus a
+scrolling on-screen transcript. Finished sets are saved to your workout history.
 
 **Exercises:** Bicep curl (desk-testable sandbox) · Squat · Pushup · Pullup
 
@@ -93,6 +97,9 @@ Key files:
 - 2D pose only: angle accuracy degrades when the movement plane isn't perpendicular
   to the camera axis. Setup-guidance cues mitigate; `VNDetectHumanBodyPose3DRequest`
   (iOS 17+) is the upgrade path.
+- The joint-angle readout is view-aware (frontal vs sagittal classification plus
+  a foreshortening backstop) but still 2D-limited: oblique camera angles and
+  unusual limb poses can briefly hide or show a joint at the hysteresis edges.
 - Thresholds are sensible defaults, not per-user calibrated. Each is a named
   constant on its analyzer, ready to be made configurable.
 - Ankle-baseline heel-lift detection is approximate (see ADR-002 §1).

@@ -12,6 +12,9 @@ struct SessionView: View {
     var onEnd: () -> Void
 
     @Environment(\.verticalSizeClass) private var verticalSizeClass
+    /// Angle mode: annotate the skeleton's hinge joints with live interior
+    /// angles. Persisted — lifters who train by numbers keep it on.
+    @AppStorage("showJointAngles") private var showJointAngles = false
     @State private var skeletonTint: Color = EF.mint
     @State private var showTranscript = false
     @State private var faultFlashTask: Task<Void, Never>?
@@ -25,7 +28,8 @@ struct SessionView: View {
             } else {
                 CameraPreviewView(camera: viewModel.camera)
                     .ignoresSafeArea()
-                SkeletonOverlayView(frame: viewModel.skeleton, tint: skeletonTint)
+                SkeletonOverlayView(frame: viewModel.skeleton, tint: skeletonTint,
+                                    showAngles: showJointAngles)
                     .ignoresSafeArea()
 
                 VStack(spacing: 0) {
@@ -62,11 +66,14 @@ struct SessionView: View {
             Spacer()
 
             HStack(spacing: 10) {
+                EFCircleButton(systemName: "angle", isActive: showJointAngles) {
+                    showJointAngles.toggle()
+                }
                 EFCircleButton(systemName: "arrow.counterclockwise") {
                     viewModel.resetSession()
                 }
                 EFCircleButton(systemName: "arrow.triangle.2.circlepath.camera") {
-                    viewModel.camera.flipCamera()
+                    viewModel.flipCamera()
                 }
             }
         }

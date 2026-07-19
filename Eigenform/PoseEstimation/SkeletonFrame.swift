@@ -12,6 +12,10 @@ struct SkeletonFrame {
     /// True when the preview is mirrored (front camera), so the overlay flips x to
     /// stay glued to the on-screen body.
     let mirrored: Bool
+    /// Hinge joints whose 2D interior angle is trustworthy for the current camera
+    /// view — produced by `AngleVisibilityModel`. Empty when angle mode has nothing
+    /// safe to draw.
+    let visibleAngleVertices: Set<Joint>
 
     /// Bone graph for the stick-figure debug view.
     static let bones: [(Joint, Joint)] = [
@@ -25,9 +29,16 @@ struct SkeletonFrame {
         (.rightHip, .rightKnee), (.rightKnee, .rightAnkle),
     ]
 
-    init(pose: BodyPose, mirrored: Bool) {
+    /// Joint triples whose interior angle the angle-overlay mode annotates.
+    /// Sourced from `AngleVisibilityModel` so the overlay and the visibility gate
+    /// stay in lockstep.
+    static let angleJoints = AngleVisibilityModel.angleJoints
+
+    init(pose: BodyPose, mirrored: Bool,
+         visibleAngleVertices: Set<Joint> = []) {
         self.joints = pose.visibleJoints
         self.imageSize = pose.imageSize
         self.mirrored = mirrored
+        self.visibleAngleVertices = visibleAngleVertices
     }
 }

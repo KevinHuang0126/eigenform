@@ -13,6 +13,7 @@ swiftc -o "$BUILD_DIR/logic-tests" \
     Eigenform/Biomechanics/BiomechanicsCalculator.swift \
     Eigenform/Biomechanics/ConsecutiveFrameGate.swift \
     Eigenform/Biomechanics/LatchingFaultGate.swift \
+    Eigenform/Biomechanics/AngleVisibilityModel.swift \
     Eigenform/Feedback/CueArbiter.swift \
     Eigenform/Exercises/Exercise.swift \
     Eigenform/Exercises/ExerciseAnalyzer.swift \

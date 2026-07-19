@@ -1,13 +1,41 @@
 # Todo
 
-## History (code done 2026-07-12; needs backend + on-device check)
+## History (done — verified 2026-07-19)
 
-- [ ] Run the SQL in `Eigenform/docs/HISTORY_SETUP.md` to create the
+- [x] Run the SQL in `Eigenform/docs/HISTORY_SETUP.md` to create the
       `workouts` table (until then, saves queue on-device and History shows a
       pointer to that doc).
-- [ ] On-device: finish a set, confirm it appears under History (clock button
+- [x] On-device: finish a set, confirm it appears under History (clock button
       on home) and in the dashboard's Table Editor; second account sees an
       empty history (RLS).
+
+## Joint angles (view-aware as of 2026-07-19)
+
+- [x] Make angle mode view-aware: `AngleVisibilityModel` classifies frontal vs
+      sagittal from shoulder/hip gap (normalized by torso length) and hides
+      joints whose 2D angle is meaningless for that view, with a foreshortening
+      backstop for in-between orientations. Example: camera-facing curl shows
+      shoulders/hips only; elbow angles appear side-on.
+
+## Voice (decision deferred — no date set)
+
+- [ ] Pick a path for shipping a good coach voice out of the box (Apple's
+      premium/enhanced voices can't be bundled or auto-downloaded; the app
+      already auto-uses one if the user has installed it). Options:
+      1. Pre-recorded cue bank: generate/record the fixed cue set once
+         (paid TTS or voice actor), ship as audio assets with synthesizer
+         fallback. Best quality + plug and play; new cues need new clips.
+      2. Bundle an open-source on-device TTS (Piper/sherpa-onnx): free,
+         decent quality, but ~30–60 MB and breaks the zero-dependency claim.
+      3. Status quo + first-run tip pointing users at Settings →
+         Accessibility → Spoken Content → Voices to download a premium voice.
+
+## Camera / session (idea only — undecided)
+
+- [ ] Possible feature: let users track sets and advance to the next set for
+      an exercise from inside the camera interface. Reservation: it could
+      dilute the app's main idea of form tracking — worth weighing before
+      building. Note only for now.
 
 ## Auth
 

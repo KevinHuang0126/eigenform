@@ -28,6 +28,8 @@ final class WorkoutSessionViewModel: ObservableObject {
 
     nonisolated private let estimator = PoseEstimator()
     private var analyzer: ExerciseAnalyzer
+    /// Gates which hinge-joint angles are safe to annotate for the current view.
+    private let angleVisibility = AngleVisibilityModel()
 
     init() {
         analyzer = Exercise.bicepCurl.makeAnalyzer()
@@ -53,11 +55,19 @@ final class WorkoutSessionViewModel: ObservableObject {
     func resetSession() {
         let current = analyzer
         current.reset()
+        angleVisibility.reset()
         repCount = 0
         phaseLabel = current.phaseLabel
         sessionStart = Date()
         feedback.clear()
         feedback.logPhase("Session reset")
+    }
+
+    /// Flip front/back camera and clear angle-visibility state — segment length
+    /// references and view class are stale after the framing change.
+    func flipCamera() {
+        angleVisibility.reset()
+        camera.flipCamera()
     }
 
     /// Snapshot of the set that just ended, for the summary screen. Fault lines
@@ -80,6 +90,7 @@ final class WorkoutSessionViewModel: ObservableObject {
     private func switchExercise(to exercise: Exercise) {
         let fresh = exercise.makeAnalyzer()
         analyzer = fresh
+        angleVisibility.reset()
         repCount = 0
         phaseLabel = fresh.phaseLabel
         feedback.logPhase("Switched to \(exercise.displayName)")
@@ -94,7 +105,10 @@ final class WorkoutSessionViewModel: ObservableObject {
 
         Task { @MainActor [weak self] in
             guard let self else { return }
-            let frame = SkeletonFrame(pose: pose, mirrored: self.camera.position == .front)
+            let visibleAngles = self.angleVisibility.visibleVertices(for: pose)
+            let frame = SkeletonFrame(pose: pose,
+                                      mirrored: self.camera.position == .front,
+                                      visibleAngleVertices: visibleAngles)
             let events = self.analyzer.process(pose)
             self.skeleton = frame
             self.repCount = self.analyzer.repCount
